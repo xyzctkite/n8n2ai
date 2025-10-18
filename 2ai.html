@@ -100,55 +100,6 @@
         .textarea-case {
             min-height: 250px;
         }
-        .ai-model-selector {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-        }
-        .ai-model-selector h4 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 15px;
-        }
-        .model-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .model-select-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #666;
-            font-size: 13px;
-            font-weight: bold;
-        }
-        .model-select-group select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-        }
-        .compare-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .compare-checkbox input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        .compare-checkbox label {
-            color: #666;
-            font-size: 14px;
-            cursor: pointer;
-        }
         .example-box {
             background: #f8f9fa;
             padding: 15px;
@@ -190,6 +141,16 @@
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #f1f3f5;
+            color: #495057;
+            flex: 0 0 auto;
+            padding: 15px 20px;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #e9ecef;
+            box-shadow: none;
         }
         .loading {
             display: none;
@@ -290,34 +251,6 @@
 
 系統會自動分析文本中的人物/組織關係並生成圖譜。"></textarea>
             
-            <!-- AI 版本選擇器 -->
-            <div class="ai-model-selector">
-                <h4>🤖 選擇 AI 模型版本</h4>
-                
-                <div class="model-grid">
-                    <div class="model-select-group">
-                        <label>版本 1</label>
-                        <select id="aiModel1">
-                            <option value="gpt-4o-mini">GPT-4o Mini (快速)</option>
-                            <option value="gpt-4o-nano">GPT-4o Nano (輕量)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="model-select-group">
-                        <label>版本 2</label>
-                        <select id="aiModel2">
-                            <option value="gpt-4o-nano">GPT-4o Nano (輕量)</option>
-                            <option value="gpt-4o-mini">GPT-4o Mini (快速)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="compare-checkbox">
-                    <input type="checkbox" id="compareMode">
-                    <label for="compareMode">啟用比較模式 (同時使用兩個版本分析)</label>
-                </div>
-            </div>
-            
             <div class="example-box">
                 <h4>💡 撰寫建議</h4>
                 <p>• 清楚描述每個人物/組織的名稱和角色</p>
@@ -348,21 +281,25 @@
         function selectOption(option) {
             currentOption = option;
             
+            // 更新選項卡樣式
             document.querySelectorAll('.option-card').forEach(card => {
                 card.classList.remove('active');
             });
             event.currentTarget.classList.add('active');
             
+            // 隱藏所有輸入區
             document.querySelectorAll('.input-section').forEach(section => {
                 section.classList.remove('show');
             });
             
+            // 顯示對應的輸入區
             if (option === 'json') {
                 document.getElementById('jsonSection').classList.add('show');
             } else if (option === 'ai') {
                 document.getElementById('aiSection').classList.add('show');
             }
             
+            // 更新按鈕文字
             const btn = document.getElementById('analyzeBtn');
             if (option === 'ai') {
                 btn.innerHTML = '🤖 AI 智能解析';
@@ -418,8 +355,11 @@ A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的�
             
             try {
                 if (currentOption === 'default') {
+                    // 使用預設資料 - 走原本的 workflow
                     await analyzeWithOriginalWorkflow({});
+                    
                 } else if (currentOption === 'json') {
+                    // JSON 格式 - 走原本的 workflow
                     const jsonInput = document.getElementById('jsonInput').value.trim();
                     if (!jsonInput) {
                         showAlert('❌ 請輸入資料', 'error');
@@ -433,7 +373,9 @@ A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的�
                         showAlert('❌ JSON 格式錯誤: ' + error.message, 'error');
                         return;
                     }
+                    
                 } else if (currentOption === 'ai') {
+                    // AI 解析文本 - 走新的 AI workflow
                     const caseText = document.getElementById('caseText').value.trim();
                     if (!caseText) {
                         showAlert('❌ 請輸入文本內容', 'error');
@@ -442,19 +384,24 @@ A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的�
                     
                     await analyzeWithAI(caseText);
                 }
+                
             } finally {
                 btn.disabled = false;
             }
         }
         
+        // 原本的 workflow (crime-analysis)
         async function analyzeWithOriginalWorkflow(requestData) {
             const url = 'https://xyzctkite.zeabur.app/webhook/crime-analysis1';
+            
             showLoading('📊 正在生成關係圖譜...');
             
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify(requestData)
                 });
                 
@@ -463,8 +410,8 @@ A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的�
                 }
                 
                 const html = await response.text();
-                const newWindow = window.open('', '_blank');
                 
+                const newWindow = window.open('', '_blank');
                 if (newWindow) {
                     newWindow.document.write(html);
                     newWindow.document.close();
@@ -474,6 +421,7 @@ A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的�
                     hideLoading();
                     showAlert('⚠️ 請允許彈出視窗', 'error');
                 }
+                
             } catch (error) {
                 hideLoading();
                 showAlert('❌ 分析失敗: ' + error.message, 'error');
@@ -481,94 +429,170 @@ A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的�
             }
         }
         
+        // 新的 AI workflow (ai-parse) - 雙模型並排顯示
         async function analyzeWithAI(caseText) {
-            const url = 'https://xyzctkite.zeabur.app/webhook/ai-parse2';
-            const compareMode = document.getElementById('compareMode').checked;
-            const model1 = document.getElementById('aiModel1').value;
-            const model2 = document.getElementById('aiModel2').value;
+            showLoading('🤖 AI 模型正在分析文本...');
             
-            if (compareMode) {
-                showLoading('🤖 正在使用兩個 AI 版本同時分析...');
+            try {
+                // 同時呼叫兩個 AI 模型
+                const [result1, result2] = await Promise.all([
+                    fetchAIModel('https://xyzctkite.zeabur.app/webhook/ai-parse1', caseText, '模型 1'),
+                    fetchAIModel('https://xyzctkite.zeabur.app/webhook/ai-parse2', caseText, '模型 2')
+                ]);
                 
-                try {
-                    const [response1, response2] = await Promise.all([
-                        fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ caseText: caseText, model: model1 })
-                        }),
-                        fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ caseText: caseText, model: model2 })
-                        })
-                    ]);
-                    
-                    if (!response1.ok || !response2.ok) {
-                        throw new Error('其中一個請求失敗');
-                    }
-                    
-                    const [html1, html2] = await Promise.all([
-                        response1.text(),
-                        response2.text()
-                    ]);
-                    
-                    const window1 = window.open('', '_blank');
-                    const window2 = window.open('', '_blank');
-                    
-                    if (window1 && window2) {
-                        window1.document.write(html1);
-                        window1.document.close();
-                        window1.document.title = `關係圖譜 - ${model1}`;
-                        
-                        window2.document.write(html2);
-                        window2.document.close();
-                        window2.document.title = `關係圖譜 - ${model2}`;
-                        
-                        hideLoading();
-                        showAlert(`✅ 比較完成！已開啟兩個版本的圖譜 (${model1} vs ${model2})`, 'success');
-                    } else {
-                        hideLoading();
-                        showAlert('⚠️ 請允許彈出視窗', 'error');
-                    }
-                } catch (error) {
-                    hideLoading();
-                    showAlert('❌ 比較失敗: ' + error.message, 'error');
-                    console.error('Error:', error);
-                }
-            } else {
-                showLoading(`🤖 AI (${model1}) 正在分析文本並生成圖譜...`);
+                hideLoading();
                 
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ caseText: caseText, model: model1 })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const html = await response.text();
-                    const newWindow = window.open('', '_blank');
-                    
-                    if (newWindow) {
-                        newWindow.document.write(html);
-                        newWindow.document.close();
-                        newWindow.document.title = `關係圖譜 - ${model1}`;
-                        hideLoading();
-                        showAlert(`✅ AI (${model1}) 解析完成,圖譜已開啟`, 'success');
-                    } else {
-                        hideLoading();
-                        showAlert('⚠️ 請允許彈出視窗', 'error');
-                    }
-                } catch (error) {
-                    hideLoading();
-                    showAlert('❌ AI 解析失敗: ' + error.message, 'error');
-                    console.error('Error:', error);
+                if (result1.success && result2.success) {
+                    // 建立新視窗顯示雙模型結果
+                    createDualModelWindow(result1.html, result2.html);
+                    showAlert('✅ 雙模型 AI 解析完成', 'success');
+                } else {
+                    const errors = [];
+                    if (!result1.success) errors.push(`模型1: ${result1.error}`);
+                    if (!result2.success) errors.push(`模型2: ${result2.error}`);
+                    showAlert('❌ 部分模型失敗: ' + errors.join('; '), 'error');
                 }
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ AI 解析失敗: ' + error.message, 'error');
+                console.error('Error:', error);
             }
+        }
+        
+        // 呼叫單一 AI 模型
+        async function fetchAIModel(url, caseText, modelName) {
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ caseText: caseText })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const html = await response.text();
+                return { success: true, html: html, modelName: modelName };
+                
+            } catch (error) {
+                console.error(`${modelName} error:`, error);
+                return { success: false, error: error.message, modelName: modelName };
+            }
+        }
+        
+        // 建立雙模型並排顯示視窗
+        function createDualModelWindow(html1, html2) {
+            const newWindow = window.open('', '_blank');
+            if (!newWindow) {
+                showAlert('⚠️ 請允許彈出視窗', 'error');
+                return;
+            }
+            
+            const dualViewHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雙模型 AI 分析結果對比</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        .container {
+            display: flex;
+            height: calc(100vh - 100px);
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 24px;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+        .panel-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 雙模型 AI 分析結果對比</h1>
+        <p>Dual AI Model Analysis Comparison</p>
+    </div>
+    <div class="container">
+        <div class="panel">
+            <div class="panel-header">
+                <span>📊</span>
+                <span>模型 1 分析結果</span>
+            </div>
+            <div class="panel-content">
+                <iframe srcdoc="${html1.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"></iframe>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">
+                <span>📊</span>
+                <span>模型 2 分析結果</span>
+            </div>
+            <div class="panel-content">
+                <iframe srcdoc="${html2.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"></iframe>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+            `;
+            
+            newWindow.document.write(dualViewHTML);
+            newWindow.document.close();
         }
     </script>
 </body>
