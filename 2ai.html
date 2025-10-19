@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -118,6 +118,55 @@
             line-height: 1.6;
             margin-bottom: 5px;
         }
+        .model-selector {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 2px solid #e0e0e0;
+        }
+        .model-selector h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .model-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .model-row:last-child {
+            margin-bottom: 0;
+        }
+        .model-label {
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        select:hover {
+            border-color: #667eea;
+        }
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
         .btn-group {
             display: flex;
             gap: 15px;
@@ -141,16 +190,6 @@
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-        }
-        .btn-secondary {
-            background: #f1f3f5;
-            color: #495057;
-            flex: 0 0 auto;
-            padding: 15px 20px;
-        }
-        .btn-secondary:hover:not(:disabled) {
-            background: #e9ecef;
-            box-shadow: none;
         }
         .loading {
             display: none;
@@ -210,15 +249,15 @@
         <p class="subtitle">Relationship Network Analysis System</p>
         
         <div class="options">
-            <div class="option-card active" onclick="selectOption('default')">
+            <div class="option-card active" id="opt-default">
                 <h3>📊 預設資料</h3>
                 <p>快速範例</p>
             </div>
-            <div class="option-card" onclick="selectOption('json')">
+            <div class="option-card" id="opt-json">
                 <h3>✏️ JSON 格式</h3>
                 <p>結構化資料</p>
             </div>
-            <div class="option-card" onclick="selectOption('ai')">
+            <div class="option-card" id="opt-ai">
                 <h3>🤖 AI 解析</h3>
                 <p>智能分析</p>
             </div>
@@ -236,7 +275,7 @@
     {"from": "A", "to": "B", "type": "持股", "strength": 60, "unit": "%"}
   ]
 }'></textarea>
-            <a href="#" class="example-link" onclick="fillJSONExample(); return false;">📝 填入範例資料</a>
+            <a href="#" class="example-link" id="fillJsonBtn">📝 填入範例資料</a>
         </div>
         
         <!-- AI 文本輸入區 -->
@@ -258,11 +297,34 @@
                 <p>• 提供具體數字(金額、比例、次數)</p>
                 <p>• 標明重要程度(核心人物、次要角色)</p>
             </div>
-            <a href="#" class="example-link" onclick="fillCaseExample(); return false;">📝 填入範例文本</a>
+            <a href="#" class="example-link" id="fillCaseBtn">📝 填入範例文本</a>
+            
+            <!-- AI 模型選擇器 -->
+            <div class="model-selector" style="margin-top: 20px;">
+                <h3>🤖 選擇 AI 模型</h3>
+                <div class="model-row">
+                    <label class="model-label">模型 1:</label>
+                    <select id="model1Select">
+                        <option value="gpt-4o">GPT-4o (推薦)</option>
+                        <option value="gpt-4o-mini">GPT-4o Mini (快速)</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (經濟)</option>
+                    </select>
+                </div>
+                <div class="model-row">
+                    <label class="model-label">模型 2:</label>
+                    <select id="model2Select">
+                        <option value="gpt-4o-mini">GPT-4o Mini (快速)</option>
+                        <option value="gpt-4o">GPT-4o (推薦)</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (經濟)</option>
+                    </select>
+                </div>
+            </div>
         </div>
         
         <div class="btn-group">
-            <button onclick="analyze()" id="analyzeBtn">
+            <button id="analyzeBtn">
                 🚀 開始分析
             </button>
         </div>
@@ -276,324 +338,215 @@
     </div>
     
     <script>
-        let currentOption = 'default';
-        
-        function selectOption(option) {
-            currentOption = option;
+        (function() {
+            'use strict';
             
-            // 更新選項卡樣式
-            document.querySelectorAll('.option-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
+            // 全域變數
+            var currentOption = 'default';
             
-            // 隱藏所有輸入區
-            document.querySelectorAll('.input-section').forEach(section => {
-                section.classList.remove('show');
-            });
+            // DOM 元素
+            var optDefault = document.getElementById('opt-default');
+            var optJson = document.getElementById('opt-json');
+            var optAi = document.getElementById('opt-ai');
+            var jsonSection = document.getElementById('jsonSection');
+            var aiSection = document.getElementById('aiSection');
+            var analyzeBtn = document.getElementById('analyzeBtn');
+            var fillJsonBtn = document.getElementById('fillJsonBtn');
+            var fillCaseBtn = document.getElementById('fillCaseBtn');
             
-            // 顯示對應的輸入區
-            if (option === 'json') {
-                document.getElementById('jsonSection').classList.add('show');
-            } else if (option === 'ai') {
-                document.getElementById('aiSection').classList.add('show');
+            // 選擇選項函數
+            function selectOption(option) {
+                currentOption = option;
+                
+                // 移除所有 active 類別
+                optDefault.classList.remove('active');
+                optJson.classList.remove('active');
+                optAi.classList.remove('active');
+                
+                // 隱藏所有輸入區
+                jsonSection.classList.remove('show');
+                aiSection.classList.remove('show');
+                
+                // 根據選項顯示對應內容
+                if (option === 'default') {
+                    optDefault.classList.add('active');
+                    analyzeBtn.innerHTML = '🚀 開始分析';
+                } else if (option === 'json') {
+                    optJson.classList.add('active');
+                    jsonSection.classList.add('show');
+                    analyzeBtn.innerHTML = '🚀 開始分析';
+                } else if (option === 'ai') {
+                    optAi.classList.add('active');
+                    aiSection.classList.add('show');
+                    analyzeBtn.innerHTML = '🤖 AI 智能解析';
+                }
             }
             
-            // 更新按鈕文字
-            const btn = document.getElementById('analyzeBtn');
-            if (option === 'ai') {
-                btn.innerHTML = '🤖 AI 智能解析';
-            } else {
-                btn.innerHTML = '🚀 開始分析';
-            }
-        }
-        
-        function fillJSONExample() {
-            const example = {
-                "people": [
-                    {"id": "A", "name": "科技公司 A", "role": "收購方", "riskLevel": "high"},
-                    {"id": "B", "name": "新創公司 B", "role": "被收購方", "riskLevel": "high"},
-                    {"id": "C", "name": "投資基金 C", "role": "股東", "riskLevel": "medium"}
-                ],
-                "relationships": [
-                    {"from": "A", "to": "B", "type": "收購", "strength": 50, "unit": "億美元"},
-                    {"from": "C", "to": "B", "type": "持股", "strength": 30, "unit": "%"}
-                ]
-            };
-            document.getElementById('jsonInput').value = JSON.stringify(example, null, 2);
-        }
-        
-        function fillCaseExample() {
-            document.getElementById('caseText').value = `科技巨頭 A 公司今日宣布以 50 億美元收購人工智慧新創公司 B。根據協議,A 公司執行長張三將親自監督整合流程。
-
-B 公司創辦人李四將加入 A 公司擔任技術長,並保留 B 公司 15% 股權。投資基金 C 原持有 B 公司 30% 股權,此次交易後將全數出售獲利了結。
-
-A 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的競爭力。交易預計於 6 個月內完成,需通過監管機構審查。`;
-        }
-        
-        function showLoading(text = '正在生成圖譜...') {
-            document.getElementById('loading').classList.add('show');
-            document.getElementById('loadingText').textContent = text;
-        }
-        
-        function hideLoading() {
-            document.getElementById('loading').classList.remove('show');
-        }
-        
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = `alert ${type} show`;
-            setTimeout(() => {
-                alert.classList.remove('show');
-            }, 5000);
-        }
-        
-        async function analyze() {
-            const btn = document.getElementById('analyzeBtn');
-            btn.disabled = true;
+            // 綁定選項卡點擊事件
+            optDefault.addEventListener('click', function() { selectOption('default'); });
+            optJson.addEventListener('click', function() { selectOption('json'); });
+            optAi.addEventListener('click', function() { selectOption('ai'); });
             
-            try {
-                if (currentOption === 'default') {
-                    // 使用預設資料 - 走原本的 workflow
-                    await analyzeWithOriginalWorkflow({});
+            // 填入 JSON 範例
+            fillJsonBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var example = {
+                    "people": [
+                        {"id": "A", "name": "科技公司 A", "role": "收購方", "riskLevel": "high"},
+                        {"id": "B", "name": "新創公司 B", "role": "被收購方", "riskLevel": "high"},
+                        {"id": "C", "name": "投資基金 C", "role": "股東", "riskLevel": "medium"}
+                    ],
+                    "relationships": [
+                        {"from": "A", "to": "B", "type": "收購", "strength": 50, "unit": "億美元"},
+                        {"from": "C", "to": "B", "type": "持股", "strength": 30, "unit": "%"}
+                    ]
+                };
+                document.getElementById('jsonInput').value = JSON.stringify(example, null, 2);
+            });
+            
+            // 填入文本範例
+            fillCaseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('caseText').value = '科技巨頭 A 公司今日宣布以 50 億美元收購人工智慧新創公司 B。根據協議,A 公司執行長張三將親自監督整合流程。\n\nB 公司創辦人李四將加入 A 公司擔任技術長,並保留 B 公司 15% 股權。投資基金 C 原持有 B 公司 30% 股權,此次交易後將全數出售獲利了結。\n\nA 公司董事會主席王五表示,此次收購將強化公司在 AI 領域的競爭力。交易預計於 6 個月內完成,需通過監管機構審查。';
+            });
+            
+            // 顯示載入動畫
+            function showLoading(text) {
+                document.getElementById('loading').classList.add('show');
+                document.getElementById('loadingText').textContent = text || '正在生成圖譜...';
+            }
+            
+            // 隱藏載入動畫
+            function hideLoading() {
+                document.getElementById('loading').classList.remove('show');
+            }
+            
+            // 顯示提示訊息
+            function showAlert(message, type) {
+                var alert = document.getElementById('alert');
+                alert.textContent = message;
+                alert.className = 'alert ' + type + ' show';
+                setTimeout(function() {
+                    alert.classList.remove('show');
+                }, 5000);
+            }
+            
+            // 原本的 workflow
+            function analyzeWithOriginalWorkflow(requestData) {
+                var url = 'https://xyzctkite.zeabur.app/webhook/crime-analysis1';
+                showLoading('📊 正在生成關係圖譜...');
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                })
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.text();
+                })
+                .then(function(html) {
+                    var newWindow = window.open('', '_blank');
+                    if (newWindow) {
+                        newWindow.document.write(html);
+                        newWindow.document.close();
+                        hideLoading();
+                        showAlert('✅ 圖譜已在新視窗開啟', 'success');
+                    } else {
+                        hideLoading();
+                        showAlert('⚠️ 請允許彈出視窗', 'error');
+                    }
+                })
+                .catch(function(error) {
+                    hideLoading();
+                    showAlert('❌ 分析失敗: ' + error.message, 'error');
+                });
+            }
+            
+            // AI 雙模型分析
+            function analyzeWithAI(caseText) {
+                var model1 = document.getElementById('model1Select').value;
+                var model2 = document.getElementById('model2Select').value;
+                
+                showLoading('🤖 使用 ' + model1 + ' 和 ' + model2 + ' 分析中...');
+                
+                var url1 = 'https://xyzctkite.zeabur.app/webhook/ai-parse1';
+                var url2 = 'https://xyzctkite.zeabur.app/webhook/ai-parse2';
+                
+                Promise.all([
+                    fetch(url1, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ caseText: caseText, model: model1 })
+                    }).then(function(r) { return r.ok ? r.text() : Promise.reject('Model 1 failed'); }),
                     
+                    fetch(url2, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ caseText: caseText, model: model2 })
+                    }).then(function(r) { return r.ok ? r.text() : Promise.reject('Model 2 failed'); })
+                ])
+                .then(function(results) {
+                    hideLoading();
+                    createDualModelWindow(results[0], results[1], model1, model2);
+                    showAlert('✅ 雙模型 AI 解析完成', 'success');
+                })
+                .catch(function(error) {
+                    hideLoading();
+                    showAlert('❌ AI 解析失敗: ' + error, 'error');
+                });
+            }
+            
+            // 建立雙模型視窗
+            function createDualModelWindow(html1, html2, model1, model2) {
+                var newWindow = window.open('', '_blank');
+                if (!newWindow) {
+                    showAlert('⚠️ 請允許彈出視窗', 'error');
+                    return;
+                }
+                
+                var dualHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>雙模型對比</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Microsoft JhengHei",Arial,sans-serif;overflow:hidden;height:100vh}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px;text-align:center}.header h1{font-size:24px;margin-bottom:8px}.header p{font-size:14px;opacity:.95}.container{display:flex;height:calc(100vh - 100px);gap:15px;padding:15px;background:#f8f9fa}.panel{flex:1;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,.08);display:flex;flex-direction:column}.panel-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px 24px;font-weight:bold;font-size:16px;text-align:center}.panel-content{flex:1;overflow:auto}iframe{width:100%;height:100%;border:none}</style></head><body><div class="header"><h1>🤖 雙模型 AI 分析結果對比</h1><p>Dual AI Model Analysis Comparison</p></div><div class="container"><div class="panel"><div class="panel-header">📊 模型 1: ' + model1 + '</div><div class="panel-content"><iframe id="f1"></iframe></div></div><div class="panel"><div class="panel-header">📊 模型 2: ' + model2 + '</div><div class="panel-content"><iframe id="f2"></iframe></div></div></div><script>var f1=document.getElementById("f1");var f2=document.getElementById("f2");f1.contentWindow.document.open();f1.contentWindow.document.write(' + JSON.stringify(html1) + ');f1.contentWindow.document.close();f2.contentWindow.document.open();f2.contentWindow.document.write(' + JSON.stringify(html2) + ');f2.contentWindow.document.close();<\/script></body></html>';
+                
+                newWindow.document.write(dualHTML);
+                newWindow.document.close();
+            }
+            
+            // 主要分析按鈕
+            analyzeBtn.addEventListener('click', function() {
+                analyzeBtn.disabled = true;
+                
+                if (currentOption === 'default') {
+                    analyzeWithOriginalWorkflow({});
                 } else if (currentOption === 'json') {
-                    // JSON 格式 - 走原本的 workflow
-                    const jsonInput = document.getElementById('jsonInput').value.trim();
+                    var jsonInput = document.getElementById('jsonInput').value.trim();
                     if (!jsonInput) {
                         showAlert('❌ 請輸入資料', 'error');
+                        analyzeBtn.disabled = false;
                         return;
                     }
-                    
                     try {
-                        const data = JSON.parse(jsonInput);
-                        await analyzeWithOriginalWorkflow({ data: data });
+                        var data = JSON.parse(jsonInput);
+                        analyzeWithOriginalWorkflow({ data: data });
                     } catch (error) {
                         showAlert('❌ JSON 格式錯誤: ' + error.message, 'error');
+                        analyzeBtn.disabled = false;
                         return;
                     }
-                    
                 } else if (currentOption === 'ai') {
-                    // AI 解析文本 - 走新的 AI workflow
-                    const caseText = document.getElementById('caseText').value.trim();
+                    var caseText = document.getElementById('caseText').value.trim();
                     if (!caseText) {
                         showAlert('❌ 請輸入文本內容', 'error');
+                        analyzeBtn.disabled = false;
                         return;
                     }
-                    
-                    await analyzeWithAI(caseText);
+                    analyzeWithAI(caseText);
                 }
                 
-            } finally {
-                btn.disabled = false;
-            }
-        }
-        
-        // 原本的 workflow (crime-analysis)
-        async function analyzeWithOriginalWorkflow(requestData) {
-            const url = 'https://xyzctkite.zeabur.app/webhook/crime-analysis1';
-            
-            showLoading('📊 正在生成關係圖譜...');
-            
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestData)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const html = await response.text();
-                
-                const newWindow = window.open('', '_blank');
-                if (newWindow) {
-                    newWindow.document.write(html);
-                    newWindow.document.close();
-                    hideLoading();
-                    showAlert('✅ 圖譜已在新視窗開啟', 'success');
-                } else {
-                    hideLoading();
-                    showAlert('⚠️ 請允許彈出視窗', 'error');
-                }
-                
-            } catch (error) {
-                hideLoading();
-                showAlert('❌ 分析失敗: ' + error.message, 'error');
-                console.error('Error:', error);
-            }
-        }
-        
-        // 新的 AI workflow (ai-parse) - 雙模型並排顯示
-        async function analyzeWithAI(caseText) {
-            showLoading('🤖 AI 模型正在分析文本...');
-            
-            try {
-                // 同時呼叫兩個 AI 模型
-                const [result1, result2] = await Promise.all([
-                    fetchAIModel('https://xyzctkite.zeabur.app/webhook/ai-parse1', caseText, '模型 1'),
-                    fetchAIModel('https://xyzctkite.zeabur.app/webhook/ai-parse2', caseText, '模型 2')
-                ]);
-                
-                hideLoading();
-                
-                if (result1.success && result2.success) {
-                    // 建立新視窗顯示雙模型結果
-                    createDualModelWindow(result1.html, result2.html);
-                    showAlert('✅ 雙模型 AI 解析完成', 'success');
-                } else {
-                    const errors = [];
-                    if (!result1.success) errors.push(`模型1: ${result1.error}`);
-                    if (!result2.success) errors.push(`模型2: ${result2.error}`);
-                    showAlert('❌ 部分模型失敗: ' + errors.join('; '), 'error');
-                }
-                
-            } catch (error) {
-                hideLoading();
-                showAlert('❌ AI 解析失敗: ' + error.message, 'error');
-                console.error('Error:', error);
-            }
-        }
-        
-        // 呼叫單一 AI 模型
-        async function fetchAIModel(url, caseText, modelName) {
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ caseText: caseText })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const html = await response.text();
-                return { success: true, html: html, modelName: modelName };
-                
-            } catch (error) {
-                console.error(`${modelName} error:`, error);
-                return { success: false, error: error.message, modelName: modelName };
-            }
-        }
-        
-        // 建立雙模型並排顯示視窗
-        function createDualModelWindow(html1, html2) {
-            const newWindow = window.open('', '_blank');
-            if (!newWindow) {
-                showAlert('⚠️ 請允許彈出視窗', 'error');
-                return;
-            }
-            
-            const dualViewHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雙模型 AI 分析結果對比</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        .header p {
-            font-size: 14px;
-            opacity: 0.95;
-        }
-        .container {
-            display: flex;
-            height: calc(100vh - 100px);
-            gap: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-        }
-        .panel {
-            flex: 1;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            display: flex;
-            flex-direction: column;
-        }
-        .panel-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 24px;
-            font-weight: bold;
-            font-size: 18px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .panel-content {
-            flex: 1;
-            overflow: auto;
-            position: relative;
-        }
-        .panel-content iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🤖 雙模型 AI 分析結果對比</h1>
-        <p>Dual AI Model Analysis Comparison</p>
-    </div>
-    <div class="container">
-        <div class="panel">
-            <div class="panel-header">
-                <span>📊</span>
-                <span>模型 1 分析結果</span>
-            </div>
-            <div class="panel-content">
-                <iframe srcdoc="${html1.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"></iframe>
-            </div>
-        </div>
-        <div class="panel">
-            <div class="panel-header">
-                <span>📊</span>
-                <span>模型 2 分析結果</span>
-            </div>
-            <div class="panel-content">
-                <iframe srcdoc="${html2.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"></iframe>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-            `;
-            
-            newWindow.document.write(dualViewHTML);
-            newWindow.document.close();
-        }
+                setTimeout(function() {
+                    analyzeBtn.disabled = false;
+                }, 1000);
+            });
+        })();
     </script>
 </body>
 </html>
